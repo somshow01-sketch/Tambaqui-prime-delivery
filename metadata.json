@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Copy of Tambaqui Prime",
+  "description": "Aplicativo premium para venda de pescado focado em tambaqui com gestão administrativa completa.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

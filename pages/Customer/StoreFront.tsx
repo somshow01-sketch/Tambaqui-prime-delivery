@@ -32,6 +32,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         btn.classList.replace('bg-green-600', 'prime-gradient');
       }, 1500);
     }
+    setQuantity(1);
   };
 
   const increment = () => setQuantity(prev => prev + 1);
@@ -39,7 +40,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden flex flex-col transition-all hover:-translate-y-1 h-full border border-slate-100/50 group">
-      {/* Botão Superior com Gradiente - Exatamente como no Screenshot */}
+      {/* Botão Superior com Gradiente - Estilo Screenshot */}
       <button
         id={`btn-${product.id}`}
         onClick={handleAddToCart}
@@ -52,7 +53,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         <span className="text-sm font-black">R$ {product.pricePerKg.toFixed(2)}</span>
       </button>
 
-      {/* Container de Imagem com Tamanho Fixo e Uniforme (Aspect Ratio 4:5) */}
+      {/* Container de Imagem com Tamanho Fixo Uniforme */}
       <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
         <img 
           src={product.images[currentImageIndex]} 
@@ -60,7 +61,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
         
-        {/* Indicadores de Carrossel */}
         {product.isCarouselEnabled && product.images.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1.5 rounded-full">
             {product.images.map((_, i) => (
@@ -74,7 +74,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         )}
       </div>
 
-      {/* Informações do Produto (Nome e Preço na base como no Screenshot) */}
       <div className="p-6 flex-1 flex flex-col bg-slate-50/30">
         <div className="mb-4">
           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-tight mb-1">{product.name}</h3>
@@ -83,7 +82,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </p>
         </div>
 
-        {/* Opções de Preparo (se houver) */}
         {product.options && (
           <div className="mb-6 space-y-2">
             {product.options.map(opt => (
@@ -103,7 +101,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </div>
         )}
 
-        {/* Seleção de Quantidade */}
         <div className="mt-auto flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
           <button 
             onClick={decrement}
@@ -132,7 +129,6 @@ const StoreFront: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col pb-32 bg-white">
-      {/* Header Estilo Screenshot */}
       <header className="sticky top-0 z-40 bg-[#0B0E14] p-4 shadow-2xl">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex flex-col">
@@ -145,7 +141,6 @@ const StoreFront: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero com Gradiente e Texto do Screenshot */}
       <div className="w-full relative aspect-[16/7] md:aspect-[21/6] bg-[#0B0E14] overflow-hidden">
         <img 
           src={appCoverImage} 
@@ -154,7 +149,7 @@ const StoreFront: React.FC = () => {
         />
         <div className="absolute inset-0 flex flex-col justify-end p-8 text-white bg-gradient-to-t from-[#0B0E14] via-[#0B0E14]/20 to-transparent">
           <div className="container mx-auto">
-            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-1 animate-in slide-in-from-bottom-2 duration-500">
+            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-1">
               SABOR DA AMAZÔNIA
             </h2>
             <p className="text-sm md:text-lg text-slate-300 font-medium max-w-lg">
@@ -165,14 +160,12 @@ const StoreFront: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4">
-        {/* Divisor "PEIXARIA PRIME" idêntico ao screenshot */}
         <div className="my-14 flex items-center gap-8 px-4">
           <div className="h-[1px] flex-1 bg-slate-200"></div>
           <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.6em]">PEIXARIA PRIME</h2>
           <div className="h-[1px] flex-1 bg-slate-200"></div>
         </div>
 
-        {/* Grid de Produtos com uniformidade visual */}
         <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16">
           {products.map(product => (
             <ProductCard key={product.id} product={product} />
@@ -180,7 +173,6 @@ const StoreFront: React.FC = () => {
         </main>
       </div>
 
-      {/* Botão Flutuante do Carrinho */}
       {cart.length > 0 && (
         <div className="fixed bottom-6 left-0 right-0 px-4 z-50 pointer-events-none">
           <Link
@@ -190,4 +182,20 @@ const StoreFront: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <ShoppingCart size={28} color="#7DB131" />
-                <span className="absolute -top-2 -
+                <span className="absolute -top-2 -right-2 bg-[#7DB131] text-white text-[10px] w-6 h-6 flex items-center justify-center rounded-full shadow-sm font-black ring-2 ring-[#0B0E14]">
+                  {cart.reduce((a, b) => a + b.quantity, 0)}
+                </span>
+              </div>
+              <span className="uppercase tracking-tight text-lg">CARRINHO</span>
+            </div>
+            <span className="text-2xl font-black text-[#7DB131]">
+              R$ {cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+            </span>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default StoreFront;

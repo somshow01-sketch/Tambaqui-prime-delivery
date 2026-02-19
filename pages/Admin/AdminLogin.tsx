@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { Lock, User, ArrowLeft, Fish, Check } from 'lucide-react';
+import { Lock, User, ArrowLeft, Fish, Check, Loader2 } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useApp();
   const navigate = useNavigate();
 
@@ -19,18 +20,31 @@ const AdminLogin: React.FC = () => {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password, rememberMe)) {
-      navigate('/admin/dashboard');
-    } else {
-      alert('Credenciais inválidas. Tente novamente.');
+    setIsLoading(true);
+    try {
+      const success = await login(username, password, rememberMe);
+      if (success) {
+        if (rememberMe) {
+          localStorage.setItem('tp_remembered_username', username);
+        } else {
+          localStorage.removeItem('tp_remembered_username');
+        }
+        navigate('/admin/dashboard');
+      } else {
+        alert('Credenciais inválidas. Tente novamente.');
+      }
+    } catch (err) {
+      alert('Erro ao processar login. Verifique sua conexão.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900 text-white p-6 md:p-12 relative overflow-hidden">
-      {/* Decorative background elements */}
+    <div className="min-h-screen flex flex-col bg-[#0B0E14] text-white p-6 md:p-12 relative overflow-hidden">
+      {/* Elementos decorativos de fundo */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-prime-green/10 rounded-full translate-x-1/2 -translate-y-1/2 blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-prime-orange/10 rounded-full -translate-x-1/2 translate-y-1/2 blur-[80px] pointer-events-none"></div>
 
@@ -50,7 +64,7 @@ const AdminLogin: React.FC = () => {
             <h1 className="text-5xl font-black uppercase tracking-tighter leading-none mb-3">
               ÁREA <span className="text-prime-green">ADMIN</span>
             </h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">Painel de Gerenciamento Prime</p>
+            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">Acesso Global ao Catálogo Prime</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -59,16 +73,18 @@ const AdminLogin: React.FC = () => {
                 <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-prime-green transition-colors" size={24} />
                 <input 
                   type="text" placeholder="Nome de Usuário" required
-                  className="w-full bg-slate-800/50 border-2 border-slate-800 p-5 pl-14 rounded-2xl focus:outline-none focus:border-prime-green focus:bg-slate-800 transition-all text-lg font-bold placeholder-slate-600"
+                  className="w-full bg-white/5 border-2 border-white/5 p-5 pl-14 rounded-2xl focus:outline-none focus:border-prime-green focus:bg-white/10 transition-all text-lg font-bold placeholder-slate-600"
                   value={username} onChange={e => setUsername(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
               <div className="relative group">
                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-prime-green transition-colors" size={24} />
                 <input 
                   type="password" placeholder="Senha de Acesso" required
-                  className="w-full bg-slate-800/50 border-2 border-slate-800 p-5 pl-14 rounded-2xl focus:outline-none focus:border-prime-green focus:bg-slate-800 transition-all text-lg font-bold placeholder-slate-600"
+                  className="w-full bg-white/5 border-2 border-white/5 p-5 pl-14 rounded-2xl focus:outline-none focus:border-prime-green focus:bg-white/10 transition-all text-lg font-bold placeholder-slate-600"
                   value={password} onChange={e => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -76,9 +92,9 @@ const AdminLogin: React.FC = () => {
             <div className="flex items-center justify-between px-2">
               <label className="flex items-center gap-4 cursor-pointer group">
                 <div 
-                  onClick={() => setRememberMe(!rememberMe)}
+                  onClick={() => !isLoading && setRememberMe(!rememberMe)}
                   className={`w-7 h-7 rounded-xl border-2 transition-all flex items-center justify-center ${
-                    rememberMe ? 'bg-prime-green border-prime-green shadow-lg shadow-prime-green/20' : 'border-slate-800 bg-slate-900'
+                    rememberMe ? 'bg-prime-green border-prime-green shadow-lg shadow-prime-green/20' : 'border-white/10 bg-slate-900'
                   }`}
                 >
                   {rememberMe && <Check size={18} className="text-white" />}
@@ -91,16 +107,24 @@ const AdminLogin: React.FC = () => {
             
             <button 
               type="submit" 
-              className="w-full bg-prime-green text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-2xl shadow-prime-green/20 hover:brightness-110 active:scale-[0.98] transition-all mt-6"
+              disabled={isLoading}
+              className="w-full bg-prime-green text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-2xl shadow-prime-green/20 hover:brightness-110 active:scale-[0.98] transition-all mt-6 flex items-center justify-center gap-3"
             >
-              Acessar Painel Master
+              {isLoading ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  Sincronizando...
+                </>
+              ) : (
+                'Acessar Painel Global'
+              )}
             </button>
           </form>
         </div>
 
         <footer className="mt-20 text-center">
           <p className="text-slate-700 font-black uppercase tracking-[0.5em] text-[10px] mb-2">
-            SISTEMA DE GESTÃO PRIME
+            SISTEMA DE GESTÃO PRIME CLOUD
           </p>
           <div className="h-[2px] w-12 bg-slate-800 mx-auto"></div>
         </footer>

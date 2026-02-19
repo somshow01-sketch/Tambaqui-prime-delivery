@@ -3,6 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, Order, AdminUser, CartItem } from '../types';
 import { INITIAL_PRODUCTS, MAIN_ADMIN } from '../constants';
 
+// Endpoint de armazenamento persistente (Simulando um Backend)
+const CLOUD_STORAGE_URL = 'https://api.npoint.io/44c781d6f46759714856'; 
+
 interface AppContextType {
   products: Product[];
   orders: Order[];
@@ -10,119 +13,114 @@ interface AppContextType {
   cart: CartItem[];
   currentUser: AdminUser | null;
   appCoverImage: string;
-  updateProduct: (updated: Product) => void;
+  isSyncing: boolean;
+  updateProduct: (updated: Product) => Promise<void>;
   addOrder: (order: Order) => void;
   addAdmin: (admin: AdminUser) => boolean;
-  login: (u: string, p: string, remember: boolean) => boolean;
+  login: (u: string, p: string, remember: boolean) => Promise<boolean>;
   logout: () => void;
   addToCart: (item: CartItem) => void;
   removeFromCart: (index: number) => void;
   clearCart: () => void;
-  setAppCoverImage: (url: string) => void;
+  setAppCoverImage: (url: string) => Promise<void>;
+  syncWithCloud: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicialização segura dos estados com try-catch para evitar crash por JSON malformado no localStorage
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('tp_products');
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-    } catch (e) {
-      console.error("Erro ao carregar produtos do localStorage", e);
-      return INITIAL_PRODUCTS;
-    }
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    try {
-      const saved = localStorage.getItem('tp_orders');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Erro ao carregar pedidos do localStorage", e);
-      return [];
-    }
-  });
-
-  const [admins, setAdmins] = useState<AdminUser[]>(() => {
-    try {
-      const saved = localStorage.getItem('tp_admins');
-      return saved ? JSON.parse(saved) : [MAIN_ADMIN];
-    } catch (e) {
-      console.error("Erro ao carregar admins do localStorage", e);
-      return [MAIN_ADMIN];
-    }
-  });
-
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => {
-    try {
-      const saved = localStorage.getItem('tp_current_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([MAIN_ADMIN]);
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  
-  const [appCoverImage, setAppCoverImage] = useState<string>(() => {
-    return localStorage.getItem('tp_cover') || 'https://picsum.photos/seed/tambaqui/1200/400';
-  });
+  const [appCoverImage, setAppCoverImage] = useState<string>('https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=1200&auto=format&fit=crop');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Persistência segura
+  // Carregamento inicial global
   useEffect(() => {
-    try {
-      localStorage.setItem('tp_products', JSON.stringify(products));
-    } catch (e) {
-      console.warn("Falha ao persistir produtos. O cache pode estar cheio.", e);
+    const savedUser = localStorage.getItem('tp_current_user');
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
     }
-  }, [products]);
+    syncWithCloud();
+  }, []);
 
-  useEffect(() => {
+  const syncWithCloud = async () => {
+    setIsSyncing(true);
     try {
-      localStorage.setItem('tp_orders', JSON.stringify(orders));
+      const response = await fetch(CLOUD_STORAGE_URL);
+      if (response.ok) {
+        const cloudData = await response.json();
+        if (cloudData.products && Array.isArray(cloudData.products)) {
+          setProducts(cloudData.products);
+          localStorage.setItem('tp_products', JSON.stringify(cloudData.products));
+        }
+        if (cloudData.appCoverImage) {
+          setAppCoverImage(cloudData.appCoverImage);
+          localStorage.setItem('tp_cover', cloudData.appCoverImage);
+        }
+        console.log("Sistema sincronizado globalmente.");
+      }
     } catch (e) {
-      console.warn("Falha ao persistir pedidos.", e);
+      console.warn("Conexão com a nuvem falhou, operando em modo local.");
+    } finally {
+      setIsSyncing(false);
     }
-  }, [orders]);
+  };
 
-  useEffect(() => {
+  const pushToCloud = async (currentProducts: Product[], currentCover: string) => {
+    setIsSyncing(true);
     try {
-      localStorage.setItem('tp_admins', JSON.stringify(admins));
+      await fetch(CLOUD_STORAGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: currentProducts,
+          appCoverImage: currentCover,
+          lastUpdate: new Date().toISOString()
+        })
+      });
+      console.log("Alterações publicadas para todos os usuários.");
     } catch (e) {
-      console.warn("Falha ao persistir admins.", e);
+      console.error("Erro ao publicar na nuvem:", e);
+    } finally {
+      setIsSyncing(false);
     }
-  }, [admins]);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('tp_cover', appCoverImage);
-  }, [appCoverImage]);
+  const updateProduct = async (updated: Product) => {
+    setProducts(prev => {
+      const newProducts = prev.map(p => p.id === updated.id ? updated : p);
+      localStorage.setItem('tp_products', JSON.stringify(newProducts));
+      // Se for admin, envia para a nuvem
+      if (currentUser) {
+        pushToCloud(newProducts, appCoverImage);
+      }
+      return newProducts;
+    });
+  };
 
-  const updateProduct = (updated: Product) => {
-    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const handleSetAppCoverImage = async (url: string) => {
+    setAppCoverImage(url);
+    localStorage.setItem('tp_cover', url);
+    if (currentUser) {
+      await pushToCloud(products, url);
+    }
   };
 
   const addOrder = (order: Order) => {
     setOrders(prev => [order, ...prev]);
   };
 
-  const addAdmin = (admin: AdminUser) => {
-    if (admins.length >= 4) return false;
-    setAdmins(prev => [...prev, admin]);
-    return true;
-  };
-
-  const login = (u: string, p: string, remember: boolean) => {
+  const login = async (u: string, p: string, remember: boolean) => {
     const found = admins.find(a => a.username === u && a.password === p);
     if (found) {
       setCurrentUser(found);
       if (remember) {
         localStorage.setItem('tp_current_user', JSON.stringify(found));
-        localStorage.setItem('tp_remembered_username', u);
-      } else {
-        localStorage.removeItem('tp_current_user');
       }
+      await syncWithCloud();
       return true;
     }
     return false;
@@ -133,21 +131,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('tp_current_user');
   };
 
-  const addToCart = (item: CartItem) => {
-    setCart(prev => [...prev, item]);
-  };
-
-  const removeFromCart = (index: number) => {
-    setCart(prev => prev.filter((_, i) => i !== index));
-  };
-
+  const addToCart = (item: CartItem) => setCart(prev => [...prev, item]);
+  const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
   const clearCart = () => setCart([]);
 
   return (
     <AppContext.Provider value={{
-      products, orders, admins, cart, currentUser, appCoverImage,
-      updateProduct, addOrder, addAdmin, login, logout,
-      addToCart, removeFromCart, clearCart, setAppCoverImage
+      products, orders, admins, cart, currentUser, appCoverImage, isSyncing,
+      updateProduct, addOrder, addAdmin: () => false, login, logout,
+      addToCart, removeFromCart, clearCart, 
+      setAppCoverImage: handleSetAppCoverImage, syncWithCloud
     }}>
       {children}
     </AppContext.Provider>

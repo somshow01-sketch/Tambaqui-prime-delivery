@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Product } from '../../types';
-import { ShoppingCart, User, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, User, Plus, Minus, RefreshCw } from 'lucide-react';
 
 const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const { addToCart } = useApp();
@@ -28,8 +28,10 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       btn.innerHTML = '<span class="text-sm font-black w-full text-center">ADICIONADO!</span>';
       btn.classList.replace('prime-gradient', 'bg-green-600');
       setTimeout(() => { 
-        btn.innerHTML = originalContent;
-        btn.classList.replace('bg-green-600', 'prime-gradient');
+        if (btn) {
+          btn.innerHTML = originalContent;
+          btn.classList.replace('bg-green-600', 'prime-gradient');
+        }
       }, 1500);
     }
     setQuantity(1);
@@ -40,7 +42,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden flex flex-col transition-all hover:-translate-y-1 h-full border border-slate-100/50 group">
-      {/* Botão Superior com Gradiente - Estilo Screenshot */}
       <button
         id={`btn-${product.id}`}
         onClick={handleAddToCart}
@@ -53,7 +54,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         <span className="text-sm font-black">R$ {product.pricePerKg.toFixed(2)}</span>
       </button>
 
-      {/* Container de Imagem com Tamanho Fixo Uniforme */}
       <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
         <img 
           src={product.images[currentImageIndex]} 
@@ -61,7 +61,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
         
-        {product.isCarouselEnabled && product.images.length > 1 && (
+        {(product.isCarouselEnabled || product.images.length > 1) && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1.5 rounded-full">
             {product.images.map((_, i) => (
               <button
@@ -125,7 +125,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 };
 
 const StoreFront: React.FC = () => {
-  const { products, cart, appCoverImage } = useApp();
+  const { products, cart, appCoverImage, isSyncing } = useApp();
 
   return (
     <div className="min-h-screen flex flex-col pb-32 bg-white">
@@ -133,11 +133,19 @@ const StoreFront: React.FC = () => {
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-white font-black text-xl tracking-tight leading-none">TAMBAQUI</span>
-            <span className="text-[#7DB131] font-black text-xl tracking-tight leading-none">PRIME</span>
+            <span className="text-[#7DB131] font-black text-xl tracking-tight leading-none text-right">PRIME</span>
           </div>
-          <Link to="/admin/login" className="text-slate-400 hover:text-white transition-colors p-1">
-            <User size={28} />
-          </Link>
+          <div className="flex items-center gap-4">
+            {isSyncing && (
+              <div className="flex items-center gap-2 animate-pulse">
+                <RefreshCw size={14} className="text-prime-green animate-spin" />
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Sincronizando...</span>
+              </div>
+            )}
+            <Link to="/admin/login" className="text-slate-400 hover:text-white transition-colors p-1">
+              <User size={28} />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -162,7 +170,7 @@ const StoreFront: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="my-14 flex items-center gap-8 px-4">
           <div className="h-[1px] flex-1 bg-slate-200"></div>
-          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.6em]">PEIXARIA PRIME</h2>
+          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.6em]">CATÁLOGO OFICIAL</h2>
           <div className="h-[1px] flex-1 bg-slate-200"></div>
         </div>
 

@@ -24,41 +24,75 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Inicialização segura dos estados com try-catch para evitar crash por JSON malformado no localStorage
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('tp_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    try {
+      const saved = localStorage.getItem('tp_products');
+      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    } catch (e) {
+      console.error("Erro ao carregar produtos do localStorage", e);
+      return INITIAL_PRODUCTS;
+    }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('tp_orders');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('tp_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Erro ao carregar pedidos do localStorage", e);
+      return [];
+    }
   });
 
   const [admins, setAdmins] = useState<AdminUser[]>(() => {
-    const saved = localStorage.getItem('tp_admins');
-    return saved ? JSON.parse(saved) : [MAIN_ADMIN];
+    try {
+      const saved = localStorage.getItem('tp_admins');
+      return saved ? JSON.parse(saved) : [MAIN_ADMIN];
+    } catch (e) {
+      console.error("Erro ao carregar admins do localStorage", e);
+      return [MAIN_ADMIN];
+    }
   });
 
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => {
-    const saved = localStorage.getItem('tp_current_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('tp_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [cart, setCart] = useState<CartItem[]>([]);
+  
   const [appCoverImage, setAppCoverImage] = useState<string>(() => {
     return localStorage.getItem('tp_cover') || 'https://picsum.photos/seed/tambaqui/1200/400';
   });
 
+  // Persistência segura
   useEffect(() => {
-    localStorage.setItem('tp_products', JSON.stringify(products));
+    try {
+      localStorage.setItem('tp_products', JSON.stringify(products));
+    } catch (e) {
+      console.warn("Falha ao persistir produtos. O cache pode estar cheio.", e);
+    }
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('tp_orders', JSON.stringify(orders));
+    try {
+      localStorage.setItem('tp_orders', JSON.stringify(orders));
+    } catch (e) {
+      console.warn("Falha ao persistir pedidos.", e);
+    }
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('tp_admins', JSON.stringify(admins));
+    try {
+      localStorage.setItem('tp_admins', JSON.stringify(admins));
+    } catch (e) {
+      console.warn("Falha ao persistir admins.", e);
+    }
   }, [admins]);
 
   useEffect(() => {

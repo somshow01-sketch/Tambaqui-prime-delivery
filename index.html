@@ -8,6 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
+      // Shim crítico para evitar ReferenceError: process is not defined
+      window.process = {
+        env: {
+          NODE_ENV: 'production'
+        }
+      };
+      
       tailwind.config = {
         theme: {
           extend: {
@@ -27,6 +34,8 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
+            margin: 0;
+            padding: 0;
         }
         .prime-gradient {
             background: linear-gradient(90deg, #f58220 0%, #7db131 100%);
@@ -35,6 +44,11 @@
             background: linear-gradient(90deg, #f58220 0%, #7db131 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        #root {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
     </style>
 <script type="importmap">
@@ -53,5 +67,6 @@
 </head>
 <body>
     <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
